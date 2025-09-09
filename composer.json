@@ -1,0 +1,28 @@
+{
+  "name": "tetthys/notification",
+  "description": "Framework-agnostic Notification core with Laravel adapter.",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Tetthys\\Notification\\Core\\": "src/Core/",
+      "Tetthys\\Notification\\Integration\\Laravel\\": "src/Integration/Laravel/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Tetthys\\Notification\\Integration\\Laravel\\Providers\\NotificationServiceProvider"
+      ]
+    }
+  },
+  "require": {
+    "php": ">=8.1",
+    "illuminate/support": "^11.0",
+    "illuminate/contracts": "^11.0",
+    "illuminate/queue": "^11.0",
+    "illuminate/mail": "^11.0"
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
