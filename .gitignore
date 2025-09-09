@@ -1,0 +1,31 @@
+# Composer
+/vendor/
+/composer.lock
+
+# Laravel / PHPStorm / IDE
+/.idea/
+/.phpunit.result.cache
+/.vscode/
+/node_modules/
+/.env
+/.DS_Store
+
+# PHPUnit
+/phpunit.xml
+.phpunit.cache
+
+# Coverage / logs
+/storage/*.key
+/storage/*.log
+/storage/framework/*
+/storage/logs/*
+/coverage/
+.clover
+.php_cs.cache
+
+# OS / Misc
+Thumbs.db
+*.log
+*.cache
+*.swp
+*.swo
