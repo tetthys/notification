@@ -3,6 +3,7 @@
   "description": "Framework-agnostic Notification core with Laravel adapter.",
   "type": "library",
   "license": "MIT",
+  "version": "0.0.2",
   "autoload": {
     "psr-4": {
       "Tetthys\\Notification\\Core\\": "src/Core/",
