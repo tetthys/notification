@@ -13,7 +13,7 @@ final class Notification
         public array $content,
         public int $priority = 0,
         public \DateTimeImmutable $timestamp = new \DateTimeImmutable(),
-        public string $status = 'Pending',
+        public string $status = "Pending",
         public ?string $parentId = null,
         public ?string $tenantId = null,
     ) {}

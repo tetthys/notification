@@ -2,7 +2,14 @@
 
 namespace Tetthys\Notification\Core;
 
-use Tetthys\Notification\Core\Contracts\{IdGenerator,RbacPolicy,Preferences,TemplateEngine,Channel,QueueBus};
+use Tetthys\Notification\Core\Contracts\{
+    IdGenerator,
+    RbacPolicy,
+    Preferences,
+    TemplateEngine,
+    Channel,
+    QueueBus,
+};
 use Tetthys\Notification\Core\Model\Notification;
 
 final class NotificationService
@@ -13,7 +20,7 @@ final class NotificationService
         private Preferences $prefs,
         private TemplateEngine $tpl,
         private QueueBus $bus,
-        private array $channels
+        private array $channels,
     ) {}
 
     public function trigger(
@@ -21,12 +28,16 @@ final class NotificationService
         string $type,
         array $recipients,
         array $data,
-        array $defaultChs = ['email'],
-        string $source = 'App'
+        array $defaultChs = ["email"],
+        string $source = "App",
     ): Notification {
         $this->rbac->assertCanSend($callerRole, $type);
 
-        $channels = $this->filterChannelsByPrefs($recipients, $type, $defaultChs);
+        $channels = $this->filterChannelsByPrefs(
+            $recipients,
+            $type,
+            $defaultChs,
+        );
 
         $content = [];
         foreach ($channels as $ch) {
@@ -40,11 +51,11 @@ final class NotificationService
             recipients: $recipients,
             channels: $channels,
             content: $content,
-            priority: $data['priority'] ?? 0,
+            priority: $data["priority"] ?? 0,
             timestamp: new \DateTimeImmutable(),
-            status: 'Queued',
-            parentId: $data['parentId'] ?? null,
-            tenantId: $data['tenantId'] ?? null,
+            status: "Queued",
+            parentId: $data["parentId"] ?? null,
+            tenantId: $data["tenantId"] ?? null,
         );
 
         foreach ($channels as $ch) {
@@ -54,8 +65,11 @@ final class NotificationService
         return $notification;
     }
 
-    private function filterChannelsByPrefs(array $recipients, string $type, array $defaults): array
-    {
+    private function filterChannelsByPrefs(
+        array $recipients,
+        string $type,
+        array $defaults,
+    ): array {
         $effective = $defaults;
         foreach ($recipients as $uid) {
             $disabled = $this->prefs->disabledChannelsFor($uid, $type);
