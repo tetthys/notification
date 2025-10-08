@@ -10,6 +10,6 @@ final class LaravelQueueBus implements QueueBus
 {
     public function enqueue(string $channel, Notification $notification): void
     {
-        SendChannelJob::dispatch($channel, $notification);
+        SendChannelJob::dispatch($channel, $notification)->onQueue('notifications');
     }
 }
