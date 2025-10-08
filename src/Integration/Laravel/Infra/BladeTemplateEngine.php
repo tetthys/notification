@@ -11,12 +11,18 @@ final class BladeTemplateEngine implements TemplateEngine
     {
         $view = "notifications.$type.$channel";
         if (View::exists($view)) {
-            return View::make($view, ['data' => $data])->renderData();
+            return View::make($view, ["data" => $data])->renderData();
         }
 
         return match ($channel) {
-            'email' => ['subject' => "[$type] ".($data['subject'] ?? ''), 'body' => $data['body'] ?? ''],
-            'inApp' => ['title' => $data['title'] ?? ($data['subject'] ?? ''), 'body' => $data['body'] ?? ''],
+            "email" => [
+                "subject" => "[$type] " . ($data["subject"] ?? ""),
+                "body" => $data["body"] ?? "",
+            ],
+            "inApp" => [
+                "title" => $data["title"] ?? ($data["subject"] ?? ""),
+                "body" => $data["body"] ?? "",
+            ],
             default => $data,
         };
     }

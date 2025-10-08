@@ -13,19 +13,24 @@ class SendChannelJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable;
 
-    public function __construct(public string $channel, public Notification $notification) {}
+    public function __construct(
+        public string $channel,
+        public Notification $notification,
+    ) {}
 
     public function handle(\Illuminate\Contracts\Container\Container $app): void
     {
         /** @var Channel[] $channels */
-        $channels = $app->make('notif.channels');
+        $channels = $app->make("notif.channels");
 
         foreach ($channels as $ch) {
-            if ($ch->name() !== $this->channel) continue;
+            if ($ch->name() !== $this->channel) {
+                continue;
+            }
 
             foreach ($this->notification->recipients as $uid) {
                 $payload = $this->notification->content[$this->channel] ?? [];
-                $ch->send($this->notification, $payload, (string)$uid);
+                $ch->send($this->notification, $payload, (string) $uid);
             }
             break;
         }

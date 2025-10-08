@@ -7,5 +7,8 @@ use Illuminate\Support\Str;
 
 final class UuidIds implements IdGenerator
 {
-    public function generate(): string { return (string) Str::uuid(); }
+    public function generate(): string
+    {
+        return (string) Str::uuid();
+    }
 }

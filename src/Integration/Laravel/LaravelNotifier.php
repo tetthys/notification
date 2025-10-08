@@ -11,12 +11,12 @@ final class LaravelNotifier
     public function send(array $payload)
     {
         return $this->core->trigger(
-            callerRole: $payload['callerRole'] ?? 'App',
-            type:       $payload['type'],
-            recipients: $payload['recipients'],
-            data:       $payload['data'] ?? [],
-            defaultChs: $payload['defaults'] ?? ['email'],
-            source:     $payload['source'] ?? 'App'
+            callerRole: $payload["callerRole"] ?? "App",
+            type: $payload["type"],
+            recipients: $payload["recipients"],
+            data: $payload["data"] ?? [],
+            defaultChs: $payload["defaults"] ?? ["email"],
+            source: $payload["source"] ?? "App",
         );
     }
 }
