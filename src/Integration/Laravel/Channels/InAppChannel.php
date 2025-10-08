@@ -28,8 +28,11 @@ final class InAppChannel implements Channel
                 [
                     "core_id" => $notification->id,
                     "type" => $notification->type,
+                    "subject" => $payload["subject"] ?? null,
                     "title" => $payload["title"] ?? null,
                     "body" => $payload["body"] ?? null,
+                    "ctaUrl" => $payload["ctaUrl"] ?? null,
+                    "meta" => $payload["meta"] ?? null,
                     "source" => $notification->source,
                     "priority" => $notification->priority,
                     "channels" => $notification->channels,
