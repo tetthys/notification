@@ -19,31 +19,43 @@ final class InAppChannel implements Channel
         array $payload,
         string $recipientId,
     ): void {
-        DB::table("notifications")->insert([
-            "id" => (string) Str::uuid(),
-            "type" => "core.inapp",
-            "notifiable_type" => \App\Models\User::class,
-            "notifiable_id" => $recipientId,
-            "data" => json_encode(
+        $defaults = [
+            'notification_id' => (string) Str::uuid(),
+            'laravel_type' => static::class,
+            'notifiable_type' => \App\Models\User::class,
+            'notifiable_id' => $recipientId,
+            'read_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        $payload = array_merge($defaults, $payload);
+
+        $data = array_filter(
+            array_merge(
                 [
-                    "core_id" => $notification->id,
-                    "type" => $notification->type,
-                    "subject" => $payload["subject"] ?? null,
-                    "title" => $payload["title"] ?? null,
-                    "body" => $payload["body"] ?? null,
-                    "ctaUrl" => $payload["ctaUrl"] ?? null,
-                    "meta" => $payload["meta"] ?? null,
-                    "source" => $notification->source,
-                    "priority" => $notification->priority,
-                    "channels" => $notification->channels,
-                    "tenantId" => $notification->tenantId,
-                    "timestamp" => $notification->timestamp->format(DATE_ATOM),
+                    'core_id' => $notification->id,
+                    'type' => $notification->type,
+                    'source' => $notification->source,
+                    'priority' => $notification->priority,
+                    'channels' => $notification->channels,
+                    'tenantId' => $notification->tenantId,
+                    'timestamp' => $notification->timestamp->format(DATE_ATOM),
                 ],
-                JSON_UNESCAPED_UNICODE,
+                array_diff_key($payload, $defaults)
             ),
-            "read_at" => null,
-            "created_at" => now(),
-            "updated_at" => now(),
+            static fn($value) => $value !== null,
+        );
+
+        DB::table('notifications')->insert([
+            'id' => $payload['notification_id'],
+            'type' => $payload['laravel_type'],
+            'notifiable_type' => $payload['notifiable_type'],
+            'notifiable_id' => (string) $payload['notifiable_id'],
+            'data' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+            'read_at' => $payload['read_at'],
+            'created_at' => $payload['created_at'],
+            'updated_at' => $payload['updated_at'],
         ]);
     }
 }
