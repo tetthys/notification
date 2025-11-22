@@ -14,6 +14,11 @@ use Tetthys\Notification\Core\Model\Notification;
 
 final class NotificationService
 {
+    private array $channelNames;
+
+    /**
+     * @param Channel[] $channels
+     */
     public function __construct(
         private IdGenerator $ids,
         private RbacPolicy $rbac,
@@ -21,7 +26,13 @@ final class NotificationService
         private TemplateEngine $tpl,
         private QueueBus $bus,
         private array $channels,
-    ) {}
+    ) {
+        $this->channelNames = array_values(
+            array_unique(
+                array_map(static fn(Channel $channel) => $channel->name(), $channels),
+            ),
+        );
+    }
 
     public function trigger(
         string $callerRole,
@@ -33,10 +44,12 @@ final class NotificationService
     ): Notification {
         $this->rbac->assertCanSend($callerRole, $type);
 
+        $defaults = $this->normalizeDefaults($defaultChs);
+
         $channels = $this->filterChannelsByPrefs(
             $recipients,
             $type,
-            $defaultChs,
+            $defaults,
         );
 
         $content = [];
@@ -63,6 +76,17 @@ final class NotificationService
         }
 
         return $notification;
+    }
+
+    private function normalizeDefaults(array $defaults): array
+    {
+        $valid = array_values(array_intersect($this->channelNames, $defaults));
+
+        if ($valid !== []) {
+            return $valid;
+        }
+
+        return $this->channelNames;
     }
 
     private function filterChannelsByPrefs(
