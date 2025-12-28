@@ -1,26 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tetthys\Notification\Core\Contracts;
 
 use Tetthys\Notification\Core\Model\Notification;
 
+/**
+ * A concrete delivery channel adapter (email, sms, push, webhook, ...).
+ */
 interface Channel
 {
     /**
-     * Returns the name/identifier of the channel.
-     *
-     * @return string The channel name.
+     * Return unique channel name (e.g. "email", "sms", "push").
      */
     public function name(): string;
 
     /**
-     * Sends the notification to the specified recipient with the given payload.
+     * Send a notification to a recipient using a channel-specific payload.
      *
-     * @param Notification $notification The notification instance to be sent.
-     * @param array $payload The content payload for the notification.
-     * @param string $recipientId The unique identifier of the recipient.
+     * Implementations should throw on failure to allow queue retries.
      *
-     * @return void
+     * @param array<string, mixed> $payload
      */
     public function send(Notification $notification, array $payload, string $recipientId): void;
 }

@@ -1,144 +1,223 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tetthys\Notification\Core;
 
 use Tetthys\Notification\Core\Contracts\{
     IdGenerator,
     RbacPolicy,
     Preferences,
-    TemplateEngine,
-    Channel,
     QueueBus,
+    Channel,
+    AuditLog,
 };
-use Tetthys\Notification\Core\Model\Notification;
+use Tetthys\Notification\Core\Model\{
+    Notification,
+    NotificationStatus,
+    DeliveryMessage,
+};
 
+/**
+ * Orchestrates notification triggering:
+ * - RBAC gate
+ * - Resolve effective channels per recipient (fan-out)
+ * - Enqueue delivery messages (recipient x channel)
+ * - Return immutable Notification envelope for trace/audit
+ */
 final class NotificationService
 {
-    /**
-     * @var string[] The list of available channel names.
-     */
+    /** @var list<string> */
     private array $channelNames;
 
     /**
-     * Constructs a new NotificationService instance.
-     * 
-     * @param IdGenerator $ids Service to generate unique IDs.
-     * @param RbacPolicy $rbac Service to enforce RBAC policies.
-     * @param Preferences $prefs Service to manage user preferences.
-     * @param TemplateEngine $tpl Service to render notification templates.
-     * @param QueueBus $bus Service to enqueue notifications for delivery.
-     * @param Channel[] $channels List of available notification channels.
-     * 
-     * @return void
+     * @param list<Channel> $channels
      */
     public function __construct(
-        private IdGenerator $ids,
-        private RbacPolicy $rbac,
-        private Preferences $prefs,
-        private TemplateEngine $tpl,
-        private QueueBus $bus,
-        private array $channels,
+        private readonly IdGenerator $ids,
+        private readonly RbacPolicy $rbac,
+        private readonly Preferences $prefs,
+        private readonly QueueBus $bus,
+        private readonly array $channels,
+        private readonly ?AuditLog $audit = null,
     ) {
-        // Initialize the list of available channel names.
         $this->channelNames = array_values(
             array_unique(
-                array_map(static fn(Channel $channel) => $channel->name(), $channels),
+                array_map(static fn(Channel $channel): string => $channel->name(), $channels),
             ),
         );
     }
 
     /**
-     * Triggers a new notification.
-     * 
-     * @param string $callerRole The role of the caller triggering the notification.
-     * @param string $type The type/category of the notification.
-     * @param array $recipients The list of recipient user IDs.
-     * @param array $data Data to be used in rendering the notification content.
-     * @param array $defaultChs Default channels to use if no preferences are set.
-     * @param string $source The source of the notification.
-     * 
-     * @return Notification The created notification instance.
-     * 
-     * @throws \Exception If the caller is not authorized to send this type of notification.
+     * Trigger a new notification and enqueue deliveries.
+     *
+     * @param list<string> $recipients
+     * @param array<string, mixed> $data
+     * @param list<string> $defaultChs
      */
     public function trigger(
         string $callerRole,
         string $type,
         array $recipients,
         array $data,
-        array $defaultChs = ["email"],
-        string $source = "App",
+        array $defaultChs = ['email'],
+        string $source = 'App',
     ): Notification {
         $this->rbac->assertCanSend($callerRole, $type);
 
         $defaults = $this->normalizeDefaults($defaultChs);
 
-        $channels = $this->filterChannelsByPrefs(
-            $recipients,
-            $type,
-            $defaults,
-        );
+        $notificationId = $this->ids->generate();
+        $priority = (int)($data['priority'] ?? 0);
+        $parentId = isset($data['parentId']) ? (string)$data['parentId'] : null;
+        $tenantId = isset($data['tenantId']) ? (string)$data['tenantId'] : null;
 
-        $content = [];
-        foreach ($channels as $ch) {
-            $content[$ch] = $this->tpl->render($type, $ch, $data);
+        $allChannelsUsed = [];
+
+        foreach ($recipients as $uid) {
+            $uid = (string)$uid;
+
+            $chs = $this->channelsForRecipient($uid, $type, $defaults);
+            if ($chs === []) {
+                continue;
+            }
+
+            foreach ($chs as $ch) {
+                $allChannelsUsed[$ch] = true;
+
+                $msg = new DeliveryMessage(
+                    notificationId: $notificationId,
+                    source: $source,
+                    type: $type,
+                    recipientId: $uid,
+                    channel: $ch,
+                    data: $this->minimizeDataForQueue($data),
+                    priority: $priority,
+                    parentId: $parentId,
+                    tenantId: $tenantId,
+                );
+
+                $this->bus->enqueueDelivery($msg);
+
+                $this->audit?->deliveryQueued(
+                    notificationId: $notificationId,
+                    recipientId: $uid,
+                    channel: $ch,
+                    meta: [
+                        'type' => $type,
+                        'source' => $source,
+                        'priority' => $priority,
+                        'parentId' => $parentId,
+                        'tenantId' => $tenantId,
+                    ],
+                );
+            }
         }
+
+        $channelsUsed = array_keys($allChannelsUsed);
 
         $notification = new Notification(
-            id: $this->ids->generate(),
+            id: $notificationId,
             source: $source,
             type: $type,
-            recipients: $recipients,
-            channels: $channels,
-            content: $content,
-            priority: $data["priority"] ?? 0,
+            recipients: array_values(array_map('strval', $recipients)),
+            channels: $channelsUsed,
+            content: [], // Not pre-rendered; worker will render.
+            priority: $priority,
             timestamp: new \DateTimeImmutable(),
-            status: "Queued",
-            parentId: $data["parentId"] ?? null,
-            tenantId: $data["tenantId"] ?? null,
+            status: NotificationStatus::Queued,
+            parentId: $parentId,
+            tenantId: $tenantId,
         );
 
-        foreach ($channels as $ch) {
-            $this->bus->enqueue($ch, $notification);
-        }
+        $this->audit?->notificationTriggered(
+            notificationId: $notificationId,
+            source: $source,
+            type: $type,
+            recipients: $notification->recipients,
+            channels: $channelsUsed,
+            meta: [
+                'priority' => $priority,
+                'parentId' => $parentId,
+                'tenantId' => $tenantId,
+                'defaults' => $defaults,
+            ],
+        );
 
         return $notification;
     }
 
     /**
-     * Normalizes the default channels to ensure they are valid.
-     * 
-     * @param array $defaults The list of default channel names.
-     * 
-     * @return array The normalized list of valid default channel names.
+     * Normalize defaults to valid channel names.
+     *
+     * Policy:
+     * - If provided defaults contain at least one valid channel, use them.
+     * - If none are valid, fall back to a safe minimal set ("email") if available,
+     *   otherwise fall back to all available channels.
+     *
+     * @param list<string> $defaults
+     * @return list<string>
      */
     private function normalizeDefaults(array $defaults): array
     {
         $valid = array_values(array_intersect($this->channelNames, $defaults));
-
         if ($valid !== []) {
             return $valid;
+        }
+
+        $safe = array_values(array_intersect($this->channelNames, ['email']));
+        if ($safe !== []) {
+            return $safe;
         }
 
         return $this->channelNames;
     }
 
     /**
-     * Filters channels based on user preferences.
-     * 
-     * @param array $recipients The list of recipient user IDs.
-     * @param string $type The type/category of the notification.
-     * @param array $defaults The list of default channel names.
-     * 
-     * @return array The effective list of channels after applying user preferences.
+     * Resolve effective channels for a single recipient.
+     *
+     * @param list<string> $defaults
+     * @return list<string>
      */
-    private function filterChannelsByPrefs(array $recipients, string $type, array $defaults): array
+    private function channelsForRecipient(string $recipientId, string $type, array $defaults): array
     {
-        $effective = $defaults;
-        foreach ($recipients as $uid) {
-            $disabled = $this->prefs->disabledChannelsFor($uid, $type);
-            $effective = array_values(array_diff($effective, $disabled));
+        $disabled = $this->prefs->disabledChannelsFor($recipientId, $type);
+
+        // Defensive: only remove channels that actually exist.
+        $disabled = array_values(array_intersect($this->channelNames, $disabled));
+
+        return array_values(array_diff($defaults, $disabled));
+    }
+
+    /**
+     * Reduce queue payload to minimize sensitive data exposure.
+     * Override/extend this policy depending on your threat model.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function minimizeDataForQueue(array $data): array
+    {
+        // Example policy: drop known sensitive keys.
+        // Implementations may instead whitelist allowed keys.
+        $deny = [
+            'password',
+            'secret',
+            'token',
+            'access_token',
+            'refresh_token',
+            'api_key',
+            'private_key',
+            'seed',
+            'mnemonic',
+        ];
+
+        foreach ($deny as $k) {
+            if (array_key_exists($k, $data)) {
+                unset($data[$k]);
+            }
         }
-        return $effective;
+
+        return $data;
     }
 }

@@ -1,18 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tetthys\Notification\Core\Contracts;
 
-use Tetthys\Notification\Core\Model\Notification;
+use Tetthys\Notification\Core\Model\DeliveryMessage;
 
+/**
+ * Abstraction over the queue mechanism used to fan-out and process deliveries.
+ */
 interface QueueBus
 {
     /**
-     * Enqueues the given notification for processing on the specified channel.
-     *
-     * @param string $channel The channel through which the notification will be sent.
-     * @param Notification $notification The notification instance to enqueue.
-     *
-     * @return void
+     * Enqueue a single delivery message (recipient x channel).
      */
-    public function enqueue(string $channel, Notification $notification): void;
+    public function enqueueDelivery(DeliveryMessage $message): void;
 }

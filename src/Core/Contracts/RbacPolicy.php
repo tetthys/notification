@@ -1,14 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tetthys\Notification\Core\Contracts;
 
+/**
+ * RBAC / authorization policy for sending notifications.
+ */
 interface RbacPolicy
 {
     /**
-     * Asserts that the caller with the given role is authorized to send notifications of the specified type.
-     * 
-     * @param string $callerRole The role of the caller attempting to send the notification.
-     * @param string $notificationType The type/category of the notification.
+     * Assert that the caller is allowed to send notifications of the given type.
+     *
+     * Implementations should throw on denial.
      */
     public function assertCanSend(string $callerRole, string $notificationType): void;
 }
