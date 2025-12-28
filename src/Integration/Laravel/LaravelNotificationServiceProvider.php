@@ -114,5 +114,13 @@ final class LaravelNotificationServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../../../config/tetthys-notification.php' => config_path('tetthys-notification.php'),
         ], 'tetthys-notification-config');
+
+        if ((bool) config('tetthys-notification.auto_listener.enabled', true)) {
+            /** @var Dispatcher $events */
+            $events = $this->app->make(Dispatcher::class);
+
+            // Listen to all events, filter by Notifies interface.
+            $events->listen('*', [AutoNotifyListener::class, 'handle']);
+        }
     }
 }

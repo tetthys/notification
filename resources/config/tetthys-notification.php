@@ -63,4 +63,15 @@ return [
         'disabled_channels' => [], // global default
         'locale' => null,          // null => app()->getLocale()
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Auto Notify Listener settings
+    |--------------------------------------------------------------------------
+    */
+    'auto_listener' => [
+        'enabled' => true,
+        'caller_role' => 'system',
+        'source' => 'App',
+    ],
 ];
