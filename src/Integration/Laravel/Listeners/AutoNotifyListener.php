@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tetthys\Notification\Integration\Laravel\Listeners;
 
 use Tetthys\Notification\Core\Contracts\Notifies;
+use Tetthys\Notification\Core\Contracts\NotifiesChannels;
 use Tetthys\Notification\Integration\Laravel\Facades\Notify;
 
 final class AutoNotifyListener
@@ -21,12 +22,17 @@ final class AutoNotifyListener
             return;
         }
 
+        $channelsOverride = null;
+        if ($event instanceof NotifiesChannels) {
+            $channelsOverride = $event->notificationChannels();
+        }
+
         Notify::trigger(
             callerRole: (string) config('tetthys-notification.auto_listener.caller_role', 'system'),
             type: $event->notificationType(),
             recipients: $event->recipients(),
             data: $event->notificationData(),
-            channelsOverride: null, // 기본 채널(database) 사용
+            channelsOverride: $channelsOverride,
             source: (string) config('tetthys-notification.auto_listener.source', 'App'),
             tenantId: $event->tenantId(),
             parentId: $event->parentId(),
