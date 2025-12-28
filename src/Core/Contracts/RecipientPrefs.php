@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Tetthys\Notification\Core\Contracts;
 
-interface Preferences
+final readonly class RecipientPrefs
 {
-    public function forRecipient(
-        string $recipientId,
-        string $type,
-        ?string $tenantId = null,
-    ): RecipientPrefs;
+    /**
+     * @param list<string> $disabledChannels
+     */
+    public function __construct(
+        public array $disabledChannels = [],
+        public ?string $locale = null,
+    ) {}
 }
