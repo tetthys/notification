@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tetthys\Notification\Integration\Laravel;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Contracts\Events\Dispatcher;
 use Tetthys\Notification\Core\Contracts\{
     ChannelResolver,
     DeliveryStore,
@@ -24,6 +25,7 @@ use Tetthys\Notification\Integration\Laravel\Support\{
     LaravelIdGenerator,
     LaravelQueueBus
 };
+use Tetthys\Notification\Integration\Laravel\Listeners\AutoNotifyListener;
 
 final class LaravelNotificationServiceProvider extends ServiceProvider
 {
