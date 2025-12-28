@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Tetthys\Notification\Core\Model;
 
 /**
- * Represents a single delivery unit (recipient x channel).
- *
- * This is what should be enqueued and processed by workers.
+ * Queue payload: one unit of work (recipient x channel).
  */
 final readonly class DeliveryMessage
 {
@@ -22,8 +20,9 @@ final readonly class DeliveryMessage
         public string $channel,
         public array $data,
         public int $priority = 0,
-        public ?string $parentId = null,
         public ?string $tenantId = null,
+        public ?string $parentId = null,
+        public ?string $locale = null,
         public \DateTimeImmutable $timestamp = new \DateTimeImmutable(),
     ) {}
 }

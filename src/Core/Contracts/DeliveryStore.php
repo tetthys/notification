@@ -4,32 +4,25 @@ declare(strict_types=1);
 
 namespace Tetthys\Notification\Core\Contracts;
 
+use Tetthys\Notification\Core\Model\DeliveryKey;
+use Tetthys\Notification\Core\Model\DeliveryResult;
+
 /**
- * Stores and enforces idempotency and delivery states.
- *
- * Core goal: prevent duplicate sends under at-least-once queue semantics.
+ * Idempotency + delivery outcome storage.
  */
 interface DeliveryStore
 {
     /**
-     * Claim a delivery for processing (idempotency gate).
-     *
-     * Must return false if the delivery has already been claimed/sent, to stop duplicates.
+     * Claim returns false if already claimed/sent/failed (policy-dependent).
      */
-    public function claim(string $notificationId, string $recipientId, string $channel): bool;
+    public function claim(DeliveryKey $key): bool;
+
+    public function markSent(DeliveryKey $key): void;
+
+    public function markFailed(DeliveryKey $key, string $reason): void;
 
     /**
-     * Mark a claimed delivery as successfully sent.
+     * Optional lookup (useful for debugging).
      */
-    public function markSent(string $notificationId, string $recipientId, string $channel): void;
-
-    /**
-     * Mark a claimed delivery as failed.
-     */
-    public function markFailed(
-        string $notificationId,
-        string $recipientId,
-        string $channel,
-        string $reason,
-    ): void;
+    public function get(DeliveryKey $key): ?DeliveryResult;
 }
