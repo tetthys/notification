@@ -33,18 +33,18 @@ final class LaravelNotificationServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__ . '/../../../config/tetthys-notification.php', 'tetthys-notification');
 
-        $this->app->singleton(IdGenerator::class, LaravelIdGenerator::class);
-        $this->app->singleton(QueueBus::class, LaravelQueueBus::class);
-        $this->app->singleton(ChannelResolver::class, ContainerChannelResolver::class);
-        $this->app->singleton(DeliveryStore::class, CacheDeliveryStore::class);
+        $this->app->singletonIf(IdGenerator::class, LaravelIdGenerator::class);
+        $this->app->singletonIf(QueueBus::class, LaravelQueueBus::class);
+        $this->app->singletonIf(ChannelResolver::class, ContainerChannelResolver::class);
+        $this->app->singletonIf(DeliveryStore::class, CacheDeliveryStore::class);
 
-        $this->app->singleton(RbacPolicy::class, function () {
+        $this->app->singletonIf(RbacPolicy::class, function () {
             return new class implements RbacPolicy {
                 public function assertCanSend(string $callerRole, string $notificationType): void {}
             };
         });
 
-        $this->app->singleton(Preferences::class, function ($app) {
+        $this->app->singletonIf(Preferences::class, function ($app) {
             return new class($app) implements Preferences {
                 public function __construct(private readonly \Illuminate\Contracts\Foundation\Application $app) {}
 
@@ -65,7 +65,7 @@ final class LaravelNotificationServiceProvider extends ServiceProvider
             };
         });
 
-        $this->app->singleton(\Tetthys\Notification\Core\Contracts\TemplateEngine::class, function () {
+        $this->app->singletonIf(\Tetthys\Notification\Core\Contracts\TemplateEngine::class, function () {
             return new class implements \Tetthys\Notification\Core\Contracts\TemplateEngine {
                 public function render(
                     string $type,
