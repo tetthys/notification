@@ -9,7 +9,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'default_channels' => [
-        'db',
+        'database',
         // 'email',
         // 'sms',
     ],
@@ -22,9 +22,14 @@ return [
     | value: container id (class-string or binding key)
     */
     'channels' => [
-        'db' => \Tetthys\Notification\Integration\Laravel\Channels\DbChannel::class,
+        'database' => \Tetthys\Notification\Integration\Laravel\Channels\DatabaseChannel::class,
         // 'email' => \App\Notifications\Channels\EmailChannel::class,
         // 'sms' => \App\Notifications\Channels\SmsChannel::class,
+    ],
+
+    'database' => [
+        'notifiable_type' => \App\Models\User::class,
+        'type_class' => \Tetthys\Notification\Integration\Laravel\Notifications\TetthysDatabaseNotification::class,
     ],
 
     /*
