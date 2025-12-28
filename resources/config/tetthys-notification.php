@@ -8,7 +8,11 @@ return [
     | Default channels (used when trigger() gets no override)
     |--------------------------------------------------------------------------
     */
-    'default_channels' => ['email'],
+    'default_channels' => [
+        'db',
+        // 'email',
+        // 'sms',
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -18,7 +22,8 @@ return [
     | value: container id (class-string or binding key)
     */
     'channels' => [
-        'email' => \App\Notifications\Channels\EmailChannel::class,
+        'db' => \Tetthys\Notification\Integration\Laravel\Channels\DbChannel::class,
+        // 'email' => \App\Notifications\Channels\EmailChannel::class,
         // 'sms' => \App\Notifications\Channels\SmsChannel::class,
     ],
 
