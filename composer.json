@@ -1,6 +1,6 @@
 {
   "name": "tetthys/notification",
-  "description": "Framework-agnostic Notification core with Laravel adapter.",
+  "description": "Framework-agnostic notification core with a thin Laravel integration.",
   "type": "library",
   "license": "MIT",
   "autoload": {
